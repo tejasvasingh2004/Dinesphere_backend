@@ -26,6 +26,13 @@ exports.up = async function(knex) {
     t.string('name', 255).notNullable();
     t.text('description');
     t.string('website', 255);
+    t.string('cuisine', 100);
+    t.decimal('rating', 3, 2).defaultTo(0);
+    t.string('price_range', 50);
+    t.string('location', 255);
+    t.string('open_time', 100);
+    t.integer('available_slots').defaultTo(0);
+    t.string('image', 500);
     t.timestamps(true, true);
   });
 
@@ -47,6 +54,8 @@ exports.up = async function(knex) {
     t.decimal('price', 10, 2).notNullable();
     t.string('currency', 10).defaultTo('INR');
     t.boolean('is_available').defaultTo(true);
+    t.boolean('is_veg').defaultTo(true);
+    t.integer('spice_level').defaultTo(0);
     t.timestamps(true, true);
   });
 
@@ -59,6 +68,7 @@ exports.up = async function(knex) {
     t.string('status', 30).defaultTo('pending');
     t.timestamp('reservation_start').notNullable();
     t.timestamp('reservation_end');
+    t.text('special_requests');
     t.timestamps(true, true);
   });
 

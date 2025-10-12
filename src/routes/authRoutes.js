@@ -91,41 +91,60 @@ const db = knex(knexConfig.development);
 
 /**
  * @swagger
- * /api/auth/login:
+ * /api/auth/register:
  *   post:
- *     summary: User login
- *     tags: [Authentication]
+ *     summary: Register a new user
+ *     tags:
+ *       - Auth
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: tejasvachouhan
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: tejasva12112004@gmail.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: tejasvasingh
  *     responses:
- *       200:
- *         description: Login successful
+ *       201:
+ *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: Alice Johnson
+ *                 email:
+ *                   type: string
+ *                   example: alice@example.com
  *       400:
- *         description: Bad request - missing email or password
+ *         description: Registration failed (e.g. email already exists)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: duplicate key value violates unique constraint "users_email_key"
  */
 router.post('/login', async (req, res) => {
   try {
@@ -191,7 +210,7 @@ router.post('/login', async (req, res) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
@@ -227,7 +246,7 @@ router.post('/register', register);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             $ref: '#/components/schemas/RegisterRestaurantRequest'
  *     responses:

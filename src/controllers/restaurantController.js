@@ -5,7 +5,35 @@ import db from '../models/db.js';
 
 export const getRestaurants = async (req, res, next) => {
   try {
-    const restaurants = await db('restaurants').select('*');
+    // Extract query params for filtering and sorting
+    const { cuisine, price_min, price_max, location, sort_by } = req.query;
+
+    let query = db('restaurants');
+
+    if (cuisine) {
+      query = query.where('cuisine', 'ilike', `%${cuisine}%`);
+    }
+    if (location) {
+      query = query.where('location', 'ilike', `%${location}%`);
+    }
+    if (price_min) {
+      query = query.whereRaw("substring(price_range from '₹([0-9]+)')::int >= ?", [price_min]);
+    }
+    if (price_max) {
+      query = query.whereRaw("substring(price_range from '-₹([0-9]+)')::int <= ?", [price_max]);
+    }
+
+    if (sort_by) {
+      if (sort_by === 'rating') {
+        query = query.orderBy('rating', 'desc');
+      } else if (sort_by === 'price_low') {
+        query = query.orderByRaw("substring(price_range from '₹([0-9]+)')::int asc");
+      } else if (sort_by === 'price_high') {
+        query = query.orderByRaw("substring(price_range from '-₹([0-9]+)')::int desc");
+      }
+    }
+
+    const restaurants = await query.select('*');
     res.json({ success: true, data: restaurants, message: 'Restaurants fetched' });
   } catch (err) {
     next(err);

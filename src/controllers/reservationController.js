@@ -23,7 +23,22 @@ export const getReservation = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    const [reservation] = await createReservation(req.body);
+    // Validate required fields
+    const { restaurant_id, user_id, party_size, reservation_start, reservation_end } = req.body;
+    if (!restaurant_id || !user_id || !party_size || !reservation_start) {
+      return res.status(400).json({ success: false, message: 'Missing required reservation fields' });
+    }
+
+    const reservationData = {
+      restaurant_id,
+      user_id,
+      party_size,
+      reservation_start,
+      reservation_end,
+      special_requests: req.body.special_requests || null
+    };
+
+    const [reservation] = await createReservation(reservationData);
     res.status(201).json({ success: true, data: reservation, message: 'Reservation created' });
   } catch (err) {
     next(err);
