@@ -6,14 +6,12 @@ export function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'dinesphere_jwt_secret_key_2024', (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
     req.user = user;
     next();
   });
 }
-
-export const authenticate = authenticateToken;
 
 export function authorize(requiredRoleId) {
   return (req, res, next) => {

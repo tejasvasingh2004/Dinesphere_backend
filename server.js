@@ -10,6 +10,12 @@ import userRoutes from './src/routes/userRoutes.js';
 import restaurantRoutes from './src/routes/restaurantRoutes.js';
 import reservationRoutes from './src/routes/reservationRoutes.js';
 import menuRoutes from './src/routes/menuRoutes.js';
+import orderRoutes from './src/routes/orderRoutes.js';
+import paymentRoutes from './src/routes/paymentRoutes.js';
+import reviewRoutes from './src/routes/reviewRoutes.js';
+import loyaltyRoutes from './src/routes/loyaltyRoutes.js';
+import notificationRoutes from './src/routes/notificationRoutes.js';
+import favoriteRoutes from './src/routes/favoriteRoutes.js';
 
 // Import middleware
 import { errorHandler } from './src/utils/response.js';
@@ -35,6 +41,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/menus', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/favorites', favoriteRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -83,6 +95,24 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
  *                     menus:
  *                       type: string
  *                       example: "/api/menus"
+ *                     orders:
+ *                       type: string
+ *                       example: "/api/orders"
+ *                     payments:
+ *                       type: string
+ *                       example: "/api/payments"
+ *                     reviews:
+ *                       type: string
+ *                       example: "/api/reviews"
+ *                     loyalty:
+ *                       type: string
+ *                       example: "/api/loyalty"
+ *                     notifications:
+ *                       type: string
+ *                       example: "/api/notifications"
+ *                     favorites:
+ *                       type: string
+ *                       example: "/api/favorites"
  *                     docs:
  *                       type: string
  *                       example: "/api-docs"
@@ -99,6 +129,12 @@ app.get('/', (req, res) => {
       restaurants: '/api/restaurants',
       reservations: '/api/reservations',
       menus: '/api/menus',
+      orders: '/api/orders',
+      payments: '/api/payments',
+      reviews: '/api/reviews',
+      loyalty: '/api/loyalty',
+      notifications: '/api/notifications',
+      favorites: '/api/favorites',
       docs: '/api-docs'
     }
   });

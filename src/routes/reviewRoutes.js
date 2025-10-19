@@ -2,13 +2,13 @@
  * @swagger
  * components:
  *   schemas:
- *     Reservation:
+ *     Review:
  *       type: object
  *       properties:
  *         id:
  *           type: string
  *           format: uuid
- *           description: Reservation UUID
+ *           description: Review UUID
  *         restaurant_id:
  *           type: string
  *           format: uuid
@@ -17,25 +17,18 @@
  *           type: string
  *           format: uuid
  *           description: User UUID
- *         party_size:
+ *         rating:
  *           type: integer
- *           description: Number of guests
- *         status:
+ *           description: Review rating
+ *           minimum: 1
+ *           maximum: 5
+ *         comment:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
- *           default: pending
- *         reservation_start:
- *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
- *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
+ *           description: Review comment
+ *         helpful_votes:
+ *           type: integer
+ *           description: Number of helpful votes
+ *           default: 0
  *         created_at:
  *           type: string
  *           format: date-time
@@ -44,13 +37,13 @@
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *     CreateReservationRequest:
+ *     CreateReviewRequest:
  *       type: object
  *       required:
  *         - restaurant_id
  *         - user_id
- *         - party_size
- *         - reservation_start
+ *         - rating
+ *         - comment
  *       properties:
  *         restaurant_id:
  *           type: string
@@ -60,68 +53,41 @@
  *           type: string
  *           format: uuid
  *           description: User UUID
- *         party_size:
+ *         rating:
  *           type: integer
- *           description: Number of guests
+ *           description: Review rating
  *           minimum: 1
- *         status:
+ *           maximum: 5
+ *         comment:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
- *           default: pending
- *         reservation_start:
- *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
- *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
- *     UpdateReservationRequest:
+ *           description: Review comment
+ *           minLength: 10
+ *           maxLength: 1000
+ *     UpdateReviewRequest:
  *       type: object
  *       properties:
- *         restaurant_id:
- *           type: string
- *           format: uuid
- *           description: Restaurant UUID
- *         user_id:
- *           type: string
- *           format: uuid
- *           description: User UUID
- *         party_size:
+ *         rating:
  *           type: integer
- *           description: Number of guests
+ *           description: Review rating
  *           minimum: 1
- *         status:
+ *           maximum: 5
+ *         comment:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
- *         reservation_start:
- *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
- *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
- *     ReservationResponse:
+ *           description: Review comment
+ *           minLength: 10
+ *           maxLength: 1000
+ *     ReviewResponse:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
  *           example: true
  *         data:
- *           $ref: '#/components/schemas/Reservation'
+ *           $ref: '#/components/schemas/Review'
  *         message:
  *           type: string
- *           example: "Reservation fetched"
- *     ReservationsListResponse:
+ *           example: "Review fetched"
+ *     ReviewsListResponse:
  *       type: object
  *       properties:
  *         success:
@@ -130,33 +96,70 @@
  *         data:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Reservation'
+ *             $ref: '#/components/schemas/Review'
  *         message:
  *           type: string
- *           example: "Reservations fetched"
+ *           example: "Reviews fetched"
+ *     RestaurantStatsResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         data:
+ *           type: object
+ *           properties:
+ *             average_rating:
+ *               type: number
+ *               format: float
+ *               description: Average rating
+ *             total_reviews:
+ *               type: integer
+ *               description: Total number of reviews
+ *             rating_breakdown:
+ *               type: object
+ *               properties:
+ *                 "5":
+ *                   type: integer
+ *                   description: Number of 5-star reviews
+ *                 "4":
+ *                   type: integer
+ *                   description: Number of 4-star reviews
+ *                 "3":
+ *                   type: integer
+ *                   description: Number of 3-star reviews
+ *                 "2":
+ *                   type: integer
+ *                   description: Number of 2-star reviews
+ *                 "1":
+ *                   type: integer
+ *                   description: Number of 1-star reviews
+ *         message:
+ *           type: string
+ *           example: "Restaurant rating stats fetched"
  */
 
 import express from 'express';
-import { getReservations, getReservation, create, update, remove, getReservationsByUserId, getReservationsByRestaurantId } from '../controllers/reservationController.js';
+import { getReviews, getReview, create, update, remove, getReviewsByRestaurantId, getReviewsByUserId, getRestaurantStats } from '../controllers/reviewController.js';
 import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/reviews:
  *   get:
- *     summary: Get all reservations (admin only)
- *     tags: [Reservations]
+ *     summary: Get all reviews (admin only)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Reservations retrieved successfully
+ *         description: Reviews retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/ReviewsListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -176,16 +179,14 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', authenticateToken, authorize(1), getReservations);
+router.get('/', authenticateToken, authorize(1), getReviews);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/reviews/{id}:
  *   get:
- *     summary: Get reservation by ID
- *     tags: [Reservations]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get review by ID (public)
+ *     tags: [Reviews]
  *     parameters:
  *       - in: path
  *         name: id
@@ -193,22 +194,16 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Review UUID
  *     responses:
  *       200:
- *         description: Reservation retrieved successfully
+ *         description: Review retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
- *       401:
- *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ReviewResponse'
  *       404:
- *         description: Reservation not found
+ *         description: Review not found
  *         content:
  *           application/json:
  *             schema:
@@ -220,43 +215,37 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', authenticateToken, getReservation);
+router.get('/:id', getReview);
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/reviews:
  *   post:
- *     summary: Create a new reservation
- *     tags: [Reservations]
+ *     summary: Create a new review
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateReservationRequest'
+ *             $ref: '#/components/schemas/CreateReviewRequest'
  *     responses:
  *       201:
- *         description: Reservation created successfully
+ *         description: Review created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/ReviewResponse'
  *       400:
- *         description: Bad request - missing required fields
+ *         description: Bad request - missing required fields or invalid rating
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - customer access required
  *         content:
  *           application/json:
  *             schema:
@@ -268,14 +257,14 @@ router.get('/:id', authenticateToken, getReservation);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticateToken, authorize(3), create); // customer only
+router.post('/', authenticateToken, create);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/reviews/{id}:
  *   put:
- *     summary: Update reservation by ID
- *     tags: [Reservations]
+ *     summary: Update review by ID (owner or admin only)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -285,20 +274,26 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Review UUID
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateReservationRequest'
+ *             $ref: '#/components/schemas/UpdateReviewRequest'
  *     responses:
  *       200:
- *         description: Reservation updated successfully
+ *         description: Review updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/ReviewResponse'
+ *       400:
+ *         description: Bad request - invalid rating
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -306,13 +301,13 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: Forbidden - customer access required
+ *         description: Forbidden - can only edit own reviews
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Review not found
  *         content:
  *           application/json:
  *             schema:
@@ -324,14 +319,14 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticateToken, authorize(3), update); // customer only
+router.put('/:id', authenticateToken, update);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/reviews/{id}:
  *   delete:
- *     summary: Delete reservation by ID
- *     tags: [Reservations]
+ *     summary: Delete review by ID (owner or admin only)
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -341,10 +336,10 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Review UUID
  *     responses:
  *       200:
- *         description: Reservation deleted successfully
+ *         description: Review deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -355,7 +350,7 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Reservation deleted"
+ *                   example: "Review deleted"
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -363,13 +358,13 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: Forbidden - customer access required
+ *         description: Forbidden - can only delete own reviews
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Review not found
  *         content:
  *           application/json:
  *             schema:
@@ -381,14 +376,58 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
+router.delete('/:id', authenticateToken, remove);
 
 /**
  * @swagger
- * /api/reservations/user/{user_id}:
+ * /api/reviews/restaurant/{restaurant_id}:
  *   get:
- *     summary: Get reservations by user ID
- *     tags: [Reservations]
+ *     summary: Get reviews by restaurant ID (public)
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: restaurant_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Restaurant UUID
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *         description: Filter by rating
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [date, rating]
+ *           default: date
+ *         description: Sort by date or rating
+ *     responses:
+ *       200:
+ *         description: Restaurant reviews retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReviewsListResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/restaurant/:restaurant_id', getReviewsByRestaurantId);
+
+/**
+ * @swagger
+ * /api/reviews/user/{user_id}:
+ *   get:
+ *     summary: Get reviews by user ID
+ *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -401,11 +440,11 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *         description: User UUID
  *     responses:
  *       200:
- *         description: User reservations retrieved successfully
+ *         description: User reviews retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/ReviewsListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -419,16 +458,14 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
+router.get('/user/:user_id', authenticateToken, getReviewsByUserId);
 
 /**
  * @swagger
- * /api/reservations/restaurant/{restaurant_id}:
+ * /api/reviews/restaurant/{restaurant_id}/stats:
  *   get:
- *     summary: Get reservations by restaurant ID
- *     tags: [Reservations]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get restaurant rating statistics (public)
+ *     tags: [Reviews]
  *     parameters:
  *       - in: path
  *         name: restaurant_id
@@ -439,17 +476,11 @@ router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
  *         description: Restaurant UUID
  *     responses:
  *       200:
- *         description: Restaurant reservations retrieved successfully
+ *         description: Restaurant rating stats retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
- *       401:
- *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/RestaurantStatsResponse'
  *       500:
  *         description: Internal server error
  *         content:
@@ -457,6 +488,7 @@ router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/restaurant/:restaurant_id', authenticateToken, getReservationsByRestaurantId);
+router.get('/restaurant/:restaurant_id/stats', getRestaurantStats);
 
 export default router;
+

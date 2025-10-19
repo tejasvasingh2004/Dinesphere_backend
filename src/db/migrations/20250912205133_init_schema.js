@@ -1,4 +1,4 @@
-exports.up = async function(knex) {
+export const up = async function(knex) {
   await knex.raw('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
   // roles
@@ -126,7 +126,7 @@ exports.up = async function(knex) {
   });
 };
 
-exports.down = async function(knex) {
+export const down = async function(knex) {
   await knex.schema.dropTableIfExists('images');
   await knex.schema.dropTableIfExists('reviews');
   await knex.schema.dropTableIfExists('payments');

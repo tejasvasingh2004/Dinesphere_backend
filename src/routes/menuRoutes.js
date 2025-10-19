@@ -1,64 +1,6 @@
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     summary: Register a new user
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *             properties:
- *               name:
- *                 type: string
- *                 example: tejasvachouhan
- *               email:
- *                 type: string
- *                 format: email
- *                 example: tejasva12112004@gmail.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: tejasvasingh
- *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   example: 1
- *                 name:
- *                   type: string
- *                   example: Alice Johnson
- *                 email:
- *                   type: string
- *                   example: alice@example.com
- *       400:
- *         description: Registration failed (e.g. email already exists)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: duplicate key value violates unique constraint "users_email_key"
- */
-
 import express from 'express';
 import { getMenus, getMenu, create, update, remove, getMenusByRestaurant } from '../controllers/menuController.js';
-import { authenticate, authorize } from '../middlewares/auth.js';
+import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -166,7 +108,7 @@ router.get('/:id', getMenu);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticate, authorize(2), create);
+router.post('/', authenticateToken, authorize(1), create);
 
 /**
  * @swagger
@@ -222,7 +164,7 @@ router.post('/', authenticate, authorize(2), create);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticate, authorize(2), update);
+router.put('/:id', authenticateToken, authorize(1), update);
 
 /**
  * @swagger
@@ -279,7 +221,7 @@ router.put('/:id', authenticate, authorize(2), update);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticate, authorize(2), remove);
+router.delete('/:id', authenticateToken, authorize(1), remove);
 
 /**
  * @swagger
@@ -315,6 +257,6 @@ router.delete('/:id', authenticate, authorize(2), remove);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/restaurant/:restaurant_id', authenticate, getMenusByRestaurant);
+router.get('/restaurant/:restaurant_id', authenticateToken, getMenusByRestaurant);
 
 export default router;

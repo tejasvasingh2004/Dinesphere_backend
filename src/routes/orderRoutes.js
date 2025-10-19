@@ -2,13 +2,13 @@
  * @swagger
  * components:
  *   schemas:
- *     Reservation:
+ *     Order:
  *       type: object
  *       properties:
  *         id:
  *           type: string
  *           format: uuid
- *           description: Reservation UUID
+ *           description: Order UUID
  *         restaurant_id:
  *           type: string
  *           format: uuid
@@ -17,25 +17,21 @@
  *           type: string
  *           format: uuid
  *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
+ *         total_amount:
+ *           type: number
+ *           format: decimal
+ *           description: Total order amount
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
+ *           description: Order status
+ *           enum: [pending, confirmed, preparing, ready, delivered, cancelled]
  *           default: pending
- *         reservation_start:
+ *         special_instructions:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: Special instructions for the order
+ *         delivery_address:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
+ *           description: Delivery address if applicable
  *         created_at:
  *           type: string
  *           format: date-time
@@ -44,13 +40,39 @@
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *     CreateReservationRequest:
+ *     OrderItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: Order item UUID
+ *         order_id:
+ *           type: string
+ *           format: uuid
+ *           description: Order UUID
+ *         menu_item_id:
+ *           type: string
+ *           format: uuid
+ *           description: Menu item UUID
+ *         quantity:
+ *           type: integer
+ *           description: Quantity of the item
+ *           minimum: 1
+ *         price:
+ *           type: number
+ *           format: decimal
+ *           description: Price per unit
+ *         special_requests:
+ *           type: string
+ *           description: Special requests for this item
+ *     CreateOrderRequest:
  *       type: object
  *       required:
  *         - restaurant_id
  *         - user_id
- *         - party_size
- *         - reservation_start
+ *         - total_amount
+ *         - order_items
  *       properties:
  *         restaurant_id:
  *           type: string
@@ -60,68 +82,72 @@
  *           type: string
  *           format: uuid
  *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
- *           minimum: 1
+ *         total_amount:
+ *           type: number
+ *           format: decimal
+ *           description: Total order amount
+ *           minimum: 0
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
+ *           description: Order status
+ *           enum: [pending, confirmed, preparing, ready, delivered, cancelled]
  *           default: pending
- *         reservation_start:
+ *         special_instructions:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: Special instructions for the order
+ *         delivery_address:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
- *     UpdateReservationRequest:
+ *           description: Delivery address if applicable
+ *         order_items:
+ *           type: array
+ *           items:
+ *             type: object
+ *             required:
+ *               - menu_item_id
+ *               - quantity
+ *               - price
+ *             properties:
+ *               menu_item_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Menu item UUID
+ *               quantity:
+ *                 type: integer
+ *                 description: Quantity of the item
+ *                 minimum: 1
+ *               price:
+ *                 type: number
+ *                 format: decimal
+ *                 description: Price per unit
+ *                 minimum: 0
+ *               special_requests:
+ *                 type: string
+ *                 description: Special requests for this item
+ *     UpdateOrderRequest:
  *       type: object
  *       properties:
- *         restaurant_id:
- *           type: string
- *           format: uuid
- *           description: Restaurant UUID
- *         user_id:
- *           type: string
- *           format: uuid
- *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
- *           minimum: 1
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
- *         reservation_start:
+ *           description: Order status
+ *           enum: [pending, confirmed, preparing, ready, delivered, cancelled]
+ *         special_instructions:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: Special instructions for the order
+ *         delivery_address:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
- *           type: string
- *           description: Special requests or notes
- *     ReservationResponse:
+ *           description: Delivery address if applicable
+ *     OrderResponse:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
  *           example: true
  *         data:
- *           $ref: '#/components/schemas/Reservation'
+ *           $ref: '#/components/schemas/Order'
  *         message:
  *           type: string
- *           example: "Reservation fetched"
- *     ReservationsListResponse:
+ *           example: "Order fetched"
+ *     OrdersListResponse:
  *       type: object
  *       properties:
  *         success:
@@ -130,33 +156,33 @@
  *         data:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Reservation'
+ *             $ref: '#/components/schemas/Order'
  *         message:
  *           type: string
- *           example: "Reservations fetched"
+ *           example: "Orders fetched"
  */
 
 import express from 'express';
-import { getReservations, getReservation, create, update, remove, getReservationsByUserId, getReservationsByRestaurantId } from '../controllers/reservationController.js';
+import { getOrders, getOrder, create, update, remove, getOrdersByUserId, getOrdersByRestaurantId } from '../controllers/orderController.js';
 import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/orders:
  *   get:
- *     summary: Get all reservations (admin only)
- *     tags: [Reservations]
+ *     summary: Get all orders (admin only)
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Reservations retrieved successfully
+ *         description: Orders retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/OrdersListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -176,14 +202,14 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', authenticateToken, authorize(1), getReservations);
+router.get('/', authenticateToken, authorize(1), getOrders);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/orders/{id}:
  *   get:
- *     summary: Get reservation by ID
- *     tags: [Reservations]
+ *     summary: Get order by ID
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -193,14 +219,14 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Order UUID
  *     responses:
  *       200:
- *         description: Reservation retrieved successfully
+ *         description: Order retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/OrderResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -208,7 +234,7 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Order not found
  *         content:
  *           application/json:
  *             schema:
@@ -220,29 +246,29 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', authenticateToken, getReservation);
+router.get('/:id', authenticateToken, getOrder);
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/orders:
  *   post:
- *     summary: Create a new reservation
- *     tags: [Reservations]
+ *     summary: Create a new order
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateReservationRequest'
+ *             $ref: '#/components/schemas/CreateOrderRequest'
  *     responses:
  *       201:
- *         description: Reservation created successfully
+ *         description: Order created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/OrderResponse'
  *       400:
  *         description: Bad request - missing required fields
  *         content:
@@ -255,12 +281,6 @@ router.get('/:id', authenticateToken, getReservation);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - customer access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Internal server error
  *         content:
@@ -268,14 +288,14 @@ router.get('/:id', authenticateToken, getReservation);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticateToken, authorize(3), create); // customer only
+router.post('/', authenticateToken, create);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/orders/{id}:
  *   put:
- *     summary: Update reservation by ID
- *     tags: [Reservations]
+ *     summary: Update order by ID
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -285,34 +305,28 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Order UUID
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateReservationRequest'
+ *             $ref: '#/components/schemas/UpdateOrderRequest'
  *     responses:
  *       200:
- *         description: Reservation updated successfully
+ *         description: Order updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/OrderResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - customer access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Order not found
  *         content:
  *           application/json:
  *             schema:
@@ -324,14 +338,14 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticateToken, authorize(3), update); // customer only
+router.put('/:id', authenticateToken, update);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/orders/{id}:
  *   delete:
- *     summary: Delete reservation by ID
- *     tags: [Reservations]
+ *     summary: Delete order by ID (admin only)
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -341,10 +355,10 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Order UUID
  *     responses:
  *       200:
- *         description: Reservation deleted successfully
+ *         description: Order deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -355,7 +369,7 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Reservation deleted"
+ *                   example: "Order deleted"
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -363,13 +377,13 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: Forbidden - customer access required
+ *         description: Forbidden - admin access required
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Order not found
  *         content:
  *           application/json:
  *             schema:
@@ -381,14 +395,14 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
+router.delete('/:id', authenticateToken, authorize(1), remove);
 
 /**
  * @swagger
- * /api/reservations/user/{user_id}:
+ * /api/orders/user/{user_id}:
  *   get:
- *     summary: Get reservations by user ID
- *     tags: [Reservations]
+ *     summary: Get orders by user ID
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -401,11 +415,11 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *         description: User UUID
  *     responses:
  *       200:
- *         description: User reservations retrieved successfully
+ *         description: User orders retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/OrdersListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -419,14 +433,14 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
+router.get('/user/:user_id', authenticateToken, getOrdersByUserId);
 
 /**
  * @swagger
- * /api/reservations/restaurant/{restaurant_id}:
+ * /api/orders/restaurant/{restaurant_id}:
  *   get:
- *     summary: Get reservations by restaurant ID
- *     tags: [Reservations]
+ *     summary: Get orders by restaurant ID
+ *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -439,11 +453,11 @@ router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
  *         description: Restaurant UUID
  *     responses:
  *       200:
- *         description: Restaurant reservations retrieved successfully
+ *         description: Restaurant orders retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/OrdersListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -457,6 +471,7 @@ router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/restaurant/:restaurant_id', authenticateToken, getReservationsByRestaurantId);
+router.get('/restaurant/:restaurant_id', authenticateToken, getOrdersByRestaurantId);
 
 export default router;
+

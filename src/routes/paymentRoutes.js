@@ -2,40 +2,43 @@
  * @swagger
  * components:
  *   schemas:
- *     Reservation:
+ *     Payment:
  *       type: object
  *       properties:
  *         id:
  *           type: string
  *           format: uuid
- *           description: Reservation UUID
- *         restaurant_id:
+ *           description: Payment UUID
+ *         order_id:
  *           type: string
  *           format: uuid
- *           description: Restaurant UUID
- *         user_id:
+ *           description: Order UUID
+ *         amount:
+ *           type: number
+ *           format: decimal
+ *           description: Payment amount
+ *         currency:
  *           type: string
- *           format: uuid
- *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
+ *           description: Payment currency
+ *           enum: [USD, EUR, GBP, CAD, AUD]
+ *         provider:
+ *           type: string
+ *           description: Payment provider
+ *           enum: [stripe, paypal, square, cash, card]
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
+ *           description: Payment status
+ *           enum: [pending, processing, completed, failed, refunded]
  *           default: pending
- *         reservation_start:
+ *         transaction_id:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: External transaction ID
+ *         payment_method:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
+ *           description: Payment method used
+ *         notes:
  *           type: string
- *           description: Special requests or notes
+ *           description: Additional payment notes
  *         created_at:
  *           type: string
  *           format: date-time
@@ -44,84 +47,73 @@
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *     CreateReservationRequest:
+ *     CreatePaymentRequest:
  *       type: object
  *       required:
- *         - restaurant_id
- *         - user_id
- *         - party_size
- *         - reservation_start
+ *         - order_id
+ *         - amount
+ *         - currency
+ *         - provider
  *       properties:
- *         restaurant_id:
+ *         order_id:
  *           type: string
  *           format: uuid
- *           description: Restaurant UUID
- *         user_id:
+ *           description: Order UUID
+ *         amount:
+ *           type: number
+ *           format: decimal
+ *           description: Payment amount
+ *           minimum: 0.01
+ *         currency:
  *           type: string
- *           format: uuid
- *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
- *           minimum: 1
+ *           description: Payment currency
+ *           enum: [USD, EUR, GBP, CAD, AUD]
+ *         provider:
+ *           type: string
+ *           description: Payment provider
+ *           enum: [stripe, paypal, square, cash, card]
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
+ *           description: Payment status
+ *           enum: [pending, processing, completed, failed, refunded]
  *           default: pending
- *         reservation_start:
+ *         transaction_id:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: External transaction ID
+ *         payment_method:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
+ *           description: Payment method used
+ *         notes:
  *           type: string
- *           description: Special requests or notes
- *     UpdateReservationRequest:
+ *           description: Additional payment notes
+ *     UpdatePaymentRequest:
  *       type: object
  *       properties:
- *         restaurant_id:
- *           type: string
- *           format: uuid
- *           description: Restaurant UUID
- *         user_id:
- *           type: string
- *           format: uuid
- *           description: User UUID
- *         party_size:
- *           type: integer
- *           description: Number of guests
- *           minimum: 1
  *         status:
  *           type: string
- *           description: Reservation status
- *           enum: [pending, confirmed, cancelled, completed]
- *         reservation_start:
+ *           description: Payment status
+ *           enum: [pending, processing, completed, failed, refunded]
+ *         transaction_id:
  *           type: string
- *           format: date-time
- *           description: Reservation start time
- *         reservation_end:
+ *           description: External transaction ID
+ *         payment_method:
  *           type: string
- *           format: date-time
- *           description: Reservation end time
- *         special_requests:
+ *           description: Payment method used
+ *         notes:
  *           type: string
- *           description: Special requests or notes
- *     ReservationResponse:
+ *           description: Additional payment notes
+ *     PaymentResponse:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
  *           example: true
  *         data:
- *           $ref: '#/components/schemas/Reservation'
+ *           $ref: '#/components/schemas/Payment'
  *         message:
  *           type: string
- *           example: "Reservation fetched"
- *     ReservationsListResponse:
+ *           example: "Payment fetched"
+ *     PaymentsListResponse:
  *       type: object
  *       properties:
  *         success:
@@ -130,33 +122,33 @@
  *         data:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Reservation'
+ *             $ref: '#/components/schemas/Payment'
  *         message:
  *           type: string
- *           example: "Reservations fetched"
+ *           example: "Payments fetched"
  */
 
 import express from 'express';
-import { getReservations, getReservation, create, update, remove, getReservationsByUserId, getReservationsByRestaurantId } from '../controllers/reservationController.js';
+import { getPayments, getPayment, create, update, remove, getPaymentsByOrderId, getPaymentHistory } from '../controllers/paymentController.js';
 import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/payments:
  *   get:
- *     summary: Get all reservations (admin only)
- *     tags: [Reservations]
+ *     summary: Get all payments (admin only)
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Reservations retrieved successfully
+ *         description: Payments retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/PaymentsListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -176,14 +168,14 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', authenticateToken, authorize(1), getReservations);
+router.get('/', authenticateToken, authorize(1), getPayments);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/payments/{id}:
  *   get:
- *     summary: Get reservation by ID
- *     tags: [Reservations]
+ *     summary: Get payment by ID
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -193,14 +185,14 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Payment UUID
  *     responses:
  *       200:
- *         description: Reservation retrieved successfully
+ *         description: Payment retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/PaymentResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -208,7 +200,7 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Payment not found
  *         content:
  *           application/json:
  *             schema:
@@ -220,43 +212,37 @@ router.get('/', authenticateToken, authorize(1), getReservations);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', authenticateToken, getReservation);
+router.get('/:id', authenticateToken, getPayment);
 
 /**
  * @swagger
- * /api/reservations:
+ * /api/payments:
  *   post:
- *     summary: Create a new reservation
- *     tags: [Reservations]
+ *     summary: Create a new payment record
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateReservationRequest'
+ *             $ref: '#/components/schemas/CreatePaymentRequest'
  *     responses:
  *       201:
- *         description: Reservation created successfully
+ *         description: Payment created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/PaymentResponse'
  *       400:
- *         description: Bad request - missing required fields
+ *         description: Bad request - missing required fields or invalid data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - customer access required
  *         content:
  *           application/json:
  *             schema:
@@ -268,14 +254,14 @@ router.get('/:id', authenticateToken, getReservation);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticateToken, authorize(3), create); // customer only
+router.post('/', authenticateToken, create);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/payments/{id}:
  *   put:
- *     summary: Update reservation by ID
- *     tags: [Reservations]
+ *     summary: Update payment by ID
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -285,34 +271,28 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Payment UUID
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateReservationRequest'
+ *             $ref: '#/components/schemas/UpdatePaymentRequest'
  *     responses:
  *       200:
- *         description: Reservation updated successfully
+ *         description: Payment updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationResponse'
+ *               $ref: '#/components/schemas/PaymentResponse'
  *       401:
  *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - customer access required
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Payment not found
  *         content:
  *           application/json:
  *             schema:
@@ -324,14 +304,14 @@ router.post('/', authenticateToken, authorize(3), create); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', authenticateToken, authorize(3), update); // customer only
+router.put('/:id', authenticateToken, update);
 
 /**
  * @swagger
- * /api/reservations/{id}:
+ * /api/payments/{id}:
  *   delete:
- *     summary: Delete reservation by ID
- *     tags: [Reservations]
+ *     summary: Delete payment by ID (admin only)
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -341,10 +321,10 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Reservation UUID
+ *         description: Payment UUID
  *     responses:
  *       200:
- *         description: Reservation deleted successfully
+ *         description: Payment deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -355,7 +335,7 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Reservation deleted"
+ *                   example: "Payment deleted"
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -363,13 +343,13 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: Forbidden - customer access required
+ *         description: Forbidden - admin access required
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: Reservation not found
+ *         description: Payment not found
  *         content:
  *           application/json:
  *             schema:
@@ -381,14 +361,52 @@ router.put('/:id', authenticateToken, authorize(3), update); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
+router.delete('/:id', authenticateToken, authorize(1), remove);
 
 /**
  * @swagger
- * /api/reservations/user/{user_id}:
+ * /api/payments/order/{order_id}:
  *   get:
- *     summary: Get reservations by user ID
- *     tags: [Reservations]
+ *     summary: Get payments by order ID
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: order_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Order UUID
+ *     responses:
+ *       200:
+ *         description: Order payments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaymentsListResponse'
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/order/:order_id', authenticateToken, getPaymentsByOrderId);
+
+/**
+ * @swagger
+ * /api/payments/user/{user_id}/history:
+ *   get:
+ *     summary: Get payment history by user ID
+ *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -401,11 +419,11 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *         description: User UUID
  *     responses:
  *       200:
- *         description: User reservations retrieved successfully
+ *         description: User payment history retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
+ *               $ref: '#/components/schemas/PaymentsListResponse'
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -419,44 +437,7 @@ router.delete('/:id', authenticateToken, authorize(3), remove); // customer only
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
-
-/**
- * @swagger
- * /api/reservations/restaurant/{restaurant_id}:
- *   get:
- *     summary: Get reservations by restaurant ID
- *     tags: [Reservations]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: restaurant_id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Restaurant UUID
- *     responses:
- *       200:
- *         description: Restaurant reservations retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ReservationsListResponse'
- *       401:
- *         description: Unauthorized - authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get('/restaurant/:restaurant_id', authenticateToken, getReservationsByRestaurantId);
+router.get('/user/:user_id/history', authenticateToken, getPaymentHistory);
 
 export default router;
+
