@@ -137,7 +137,7 @@
  */
 
 import express from 'express';
-import { getReservations, getReservation, create, update, remove, getReservationsByUserId, getReservationsByRestaurantId } from '../controllers/reservationController.js';
+import { getReservations, getReservation, create, update, remove, getReservationsByUserId, getReservationsByRestaurantId, cancel } from '../controllers/reservationController.js';
 import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -458,5 +458,55 @@ router.get('/user/:user_id', authenticateToken, getReservationsByUserId);
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/restaurant/:restaurant_id', authenticateToken, getReservationsByRestaurantId);
+
+/**
+ * @swagger
+ * /api/reservations/{id}/cancel:
+ *   patch:
+ *     summary: Cancel reservation by ID
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Reservation UUID
+ *     responses:
+ *       200:
+ *         description: Reservation cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReservationResponse'
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - customer access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Reservation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch('/:id/cancel', authenticateToken, authorize(3), cancel); // customer only
 
 export default router;

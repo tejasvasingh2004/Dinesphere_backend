@@ -257,6 +257,6 @@ router.delete('/:id', authenticateToken, authorize(1), remove);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/restaurant/:restaurant_id', authenticateToken, getMenusByRestaurant);
+router.get('/restaurant/:restaurant_id', getMenusByRestaurant);
 
 export default router;
