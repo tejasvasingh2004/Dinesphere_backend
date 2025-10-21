@@ -27,3 +27,24 @@ export const getReservationsByUser = async (userId) => {
 export const getReservationsByRestaurant = async (restaurantId) => {
   return await db('reservations').where({ restaurant_id: restaurantId });
 };
+
+export const cancelReservation = async (id) => {
+  // First get the reservation to restore slots
+  const reservation = await db('reservations').where({ id }).first();
+  if (!reservation) {
+    return null;
+  }
+
+  // Update status to cancelled
+  const [updatedReservation] = await db('reservations')
+    .where({ id })
+    .update({ status: 'cancelled', updated_at: db.fn.now() })
+    .returning('*');
+
+  // Restore available slots in restaurants table
+  await db('restaurants')
+    .where('id', reservation.restaurant_id)
+    .increment('available_slots', 1);
+
+  return updatedReservation;
+};
