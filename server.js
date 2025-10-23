@@ -16,6 +16,7 @@ import reviewRoutes from './src/routes/reviewRoutes.js';
 import loyaltyRoutes from './src/routes/loyaltyRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
 import favoriteRoutes from './src/routes/favoriteRoutes.js';
+import cartRoutes from './src/routes/cartRoutes.js';
 
 // Import middleware
 import { errorHandler } from './src/utils/response.js';
@@ -47,6 +48,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -135,6 +137,7 @@ app.get('/', (req, res) => {
       loyalty: '/api/loyalty',
       notifications: '/api/notifications',
       favorites: '/api/favorites',
+      cart: '/api/cart',
       docs: '/api-docs'
     }
   });

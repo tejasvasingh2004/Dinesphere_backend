@@ -14,9 +14,12 @@ export function authenticateToken(req, res, next) {
 }
 
 export function authorize(requiredRoleId) {
+  
   return (req, res, next) => {
+
     if (!req.user) return res.status(401).json({ message: 'Authentication required' });
-    if (req.user.role_id !== requiredRoleId) return res.status(403).json({ message: 'Insufficient permissions' });
+    if (req.user.role !== requiredRoleId) return res.status(403).json({ message: 'Insufficient permissions' });
+    
     next();
   };
 }

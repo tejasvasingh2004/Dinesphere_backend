@@ -268,7 +268,7 @@ router.get('/:id', authenticateToken, getReservation);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', authenticateToken, authorize(3), create); // customer only
+router.post('/', authenticateToken, authorize(2), create); // customer only
 
 /**
  * @swagger

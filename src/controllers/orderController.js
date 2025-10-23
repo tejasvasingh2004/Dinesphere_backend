@@ -9,6 +9,7 @@ import {
   getOrderWithItems,
   createOrderWithItems 
 } from '../models/orderModel.js';
+import { getCartWithItems, clearCart, getCartByUser } from '../models/cartModel.js';
 
 export const getOrders = async (req, res, next) => {
   try {
@@ -99,6 +100,62 @@ export const getOrdersByRestaurantId = async (req, res, next) => {
   try {
     const orders = await getOrdersByRestaurant(req.params.restaurant_id);
     res.json({ success: true, data: orders, message: 'Orders for restaurant fetched' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createOrderFromCart = async (req, res, next) => {
+  try {
+    const { restaurant_id } = req.params;
+    const { special_instructions, delivery_address, order_type = 'dine_in' } = req.body;
+    const userId = req.user.id;
+
+    // Get cart with items
+    const cart = await getCartWithItems(await getCartByUser(userId, restaurant_id).then(c => c.id));
+    
+    if (!cart || !cart.cart_items || cart.cart_items.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cart is empty' 
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = cart.cart_items.reduce((total, item) => {
+      return total + (item.quantity * parseFloat(item.unit_price));
+    }, 0);
+
+    // Prepare order data
+    const orderData = {
+      restaurant_id,
+      user_id: userId,
+      total_amount: totalAmount,
+      status: 'pending',
+      order_type,
+      special_instructions: special_instructions || null,
+      delivery_address: delivery_address || null
+    };
+
+    // Prepare order items
+    const orderItems = cart.cart_items.map(item => ({
+      menu_item_id: item.menu_item_id,
+      quantity: item.quantity,
+      price: parseFloat(item.unit_price),
+      special_requests: item.special_requests
+    }));
+
+    // Create order with items
+    const order = await createOrderWithItems(orderData, orderItems);
+
+    // Clear cart after successful order creation
+    await clearCart(cart.id);
+
+    res.status(201).json({ 
+      success: true, 
+      data: order, 
+      message: 'Order created from cart' 
+    });
   } catch (err) {
     next(err);
   }

@@ -163,7 +163,7 @@
  */
 
 import express from 'express';
-import { getOrders, getOrder, create, update, remove, getOrdersByUserId, getOrdersByRestaurantId } from '../controllers/orderController.js';
+import { getOrders, getOrder, create, update, remove, getOrdersByUserId, getOrdersByRestaurantId, createOrderFromCart } from '../controllers/orderController.js';
 import { authenticateToken, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -472,6 +472,68 @@ router.get('/user/:user_id', authenticateToken, getOrdersByUserId);
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/restaurant/:restaurant_id', authenticateToken, getOrdersByRestaurantId);
+
+/**
+ * @swagger
+ * /api/orders/from-cart/{restaurant_id}:
+ *   post:
+ *     summary: Create order from cart
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: restaurant_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Restaurant UUID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               special_instructions:
+ *                 type: string
+ *                 description: Special instructions for the order
+ *               delivery_address:
+ *                 type: string
+ *                 description: Delivery address if applicable
+ *               order_type:
+ *                 type: string
+ *                 enum: [dine_in, takeaway, delivery]
+ *                 default: dine_in
+ *                 description: Type of order
+ *     responses:
+ *       201:
+ *         description: Order created from cart successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OrderResponse'
+ *       400:
+ *         description: Bad request - cart is empty
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/from-cart/:restaurant_id', authenticateToken, createOrderFromCart);
 
 export default router;
 
